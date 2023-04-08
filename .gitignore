@@ -1,4 +1,7 @@
 config.py
 passwords.json
 Pipfile
+Pipfile.lock
 проект3.txt
+.gitignore
+data.json
