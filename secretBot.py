@@ -31,8 +31,9 @@ async def help(message: types.Message):
 #/Регистрация
 @dp.message_handler(commands=['Регистрация'])
 async def registation(message: types.Message,):
-    with open('passwords.json', 'r') as pw:
-        if str(message.from_user.id) + '_password":' in pw.read():
+    user_password = str(message.from_user.id) + '_password'
+    with open('passwords.json') as pw:
+        if user_password in pw.read():
             await bot.send_message(message.from_user.id, 
                                 f'{message.from_user.id}, вы уже регистрировались здесь!')
         else:
@@ -43,30 +44,32 @@ async def registation(message: types.Message,):
 #/Мои_данные
 @dp.message_handler(commands=['Мои_данные'])
 async def data_read(message: types.Message):
+    user_password = str(message.from_user.id) + '_password'
     with open('passwords.json') as pw:
-        if str(message.from_user.id) + '_password":' not in pw.read():
-            await bot.send_message(message.from_user.id, f'{message.from_user.id}, вы не зарегистрированы.\
-                                   Обратитесь к команде "/Регистрация", чтобы внести данные в базу данных ')
-        else:     
+        if user_password in pw.read():
             await bot.send_message(message.from_user.id, 
                                 f'{message.from_user.id}, введите пароль.')
             await states.Password.waiting_for_authorization_rd.set()
+        else:     
+            await bot.send_message(message.from_user.id, f'{message.from_user.id}, вы не зарегистрированы.\
+                                   Обратитесь к команде "/Регистрация", чтобы внести данные в базу данных')
 
 #/Добавить_данные
 @dp.message_handler(commands=['Добавить_данные'])
 async def data_write(message: types.Message):
+    user_password = str(message.from_user.id) + '_password'
     with open('passwords.json') as pw:
-        if str(message.from_user.id) + '_password":' not in pw.read():
-            await bot.send_message(message.from_user.id, f'{message.from_user.id}, вы не зарегистрированы.\
-                                   Обратитесь к команде "/Регистрация", чтобы внести данные в базу данных ')
-        else:     
+        if user_password in pw.read():
             await bot.send_message(message.from_user.id, 
                                 f'{message.from_user.id}, введите пароль.')
-            await states.Password.waiting_for_authorization_wrt.set()
-
+            await states.Password.waiting_for_authorization_wrt.set()  
+        else:
+            await bot.send_message(message.from_user.id, f'{message.from_user.id}, вы не зарегистрированы.\
+                                   Обратитесь к команде "/Регистрация", чтобы внести данные в базу данных')
+            
 #Создание пароля
 @dp.message_handler(state=states.Password.waiting_for_registration)              
-async def validationDuringReg(message: types.Message, state: FSMContext):
+async def create_correct_password(message: types.Message, state: FSMContext):
     password = message.text
     hiden_password = len(message.text)*'*'
     await state.update_data(password=password)
@@ -90,68 +93,70 @@ async def validationDuringReg(message: types.Message, state: FSMContext):
     
     await state.finish()
 
-#Авторизация чтение даных
+#Авторизация + чтение данных
 @dp.message_handler(state=states.Password.waiting_for_authorization_rd)
-async def validationDuringAuth(message: types.Message, state: FSMContext):
+async def read_user_data(message: types.Message, state: FSMContext):
     password = message.text
-    user_password = str(message.from_user.id) + '_password'
-    password_in_db = f'"{user_password}": "{password}"'
     user_data = str(message.from_user.id) + '_data'
+    user_password = str(message.from_user.id) + '_password'
+    user_pass_combination = f'"{user_password}": "{password}"'
 
     with open('passwords.json') as pw:
-        if password_in_db in pw.read():
-            await bot.send_message(message.from_user.id, 'Успешно, чтение')
-            with open('data.json') as pw:
-                data = json.load(pw)
-                print(user_data, data["data"])
-                print(type(user_data), type(data["data"]))
-                
-                for d in data["data"]:
-                    if user_data in d:
-                        print(d[user_data])
-                        await bot.send_message(message.from_user.id, f'{d[user_data]}')
+        if user_pass_combination in pw.read():
+            await bot.send_message(message.from_user.id, 'ВАШИ ДАННЫЕ:\n-------------------------------')
+            with open('data.json') as dt:
+                data = json.load(dt)
+                for item in data["data"]:
+                    if user_data in item:
+                        await bot.send_message(message.from_user.id, 
+                                               f'{item[user_data]}')                                 
+                await bot.send_message(message.from_user.id,
+                                       '<b><i>В качестве безопасности очистите историю.\
+                                        Ваши данные будут сохранены.</i></b>', parse_mode='HTML')                                
+                await state.finish()
         else:
-            await bot.send_message(message.from_user.id, 'НЕВЕРНО!')  
+            await bot.send_message(message.from_user.id, 'Неверный пароль!')  
 
     await message.delete()                  
 
-#Авторизация запись данных
+#Авторизация + запись данных
 @dp.message_handler(state=states.Password.waiting_for_authorization_wrt)
-async def validationDuringAuth(message: types.Message, state: FSMContext):
+async def auth_valid(message: types.Message, state: FSMContext):
     password = message.text
     user_password = str(message.from_user.id) + '_password'
-    password_in_db = f'"{user_password}": "{password}"'
+    user_pass_combination = f'"{user_password}": "{password}"'
     
     with open('passwords.json') as pw:
-        if password_in_db in pw.read():
+        if user_pass_combination in pw.read():
             await bot.send_message(message.from_user.id, 'Успешно. Внесите данные.')
             await states.Password.waiting_for_write_data.set()
         else:
-            await bot.send_message(message.from_user.id, 'НЕВЕРНО!')
+            await bot.send_message(message.from_user.id, 'Неверный пароль!')
     await message.delete()
     
 #Запись данных    
 @dp.message_handler(state=states.Password.waiting_for_write_data)   
-async def write_data(message: types.Message, state: FSMContext):         
+async def write(message: types.Message, state: FSMContext):         
     user = str(message.from_user.id) + '_data'
     user_data = str(message.text)
     data_to_db = {user : user_data}
 
-    with open('data.json') as pw:
-        data = json.load(pw)
+    with open('data.json') as dt:
+        data = json.load(dt)
         data['data'].append(data_to_db)
-        with open('data.json', 'w') as outpw:
-            json.dump(data, outpw)
+        with open('data.json', 'w') as outdt:
+            json.dump(data, outdt)
     await bot.send_message(message.from_user.id, 
-                            f'{message.from_user.id}, данные успешно занесены.')                  
+                           f'{message.from_user.id}, данные успешно занесены.')  
+                    
     await state.finish()
     await message.delete()
 
-# #--------------------------------------
-
 #Any messages
 @dp.message_handler()
-async def send_id(message: types.Message):
+async def send_hello(message: types.Message):
     await bot.send_message(message.from_user.id, f'Напиши /start или /help')
 
 executor.start_polling(dp, skip_updates=True, on_startup=on_startup)
+
+#--------------------------------------
