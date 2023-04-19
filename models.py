@@ -17,17 +17,18 @@ class User(Base):
         primary_key=True,
         autoincrement=True
     )
-    user_id = Column(
+    name_id = Column(
         String(128),
         nullable=False
     )
-    name = Column(
+
+    password = Column(
         String(128),
-        comment='Никнейм/имя пользователя'
+        nullable=False
     )
 
     def __repr__(self):
-        return f'{self.id} {self.user_id} {self.name}'
+        return f'{self.id} {self.name_id} {self.password}'
     
 class Data(Base):
 
