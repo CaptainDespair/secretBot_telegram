@@ -2,17 +2,15 @@ import psycopg2
 from psycopg2 import Error
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 
-from config import POSTGRES_PASSWORD
-from create_db import user, host, port, database
+from config import PG_USER, PG_PASSWORD, PG_HOST, PG_PORT, PG_DATABASE_NAME
 
 def db_connection():
     try:
-        connection = psycopg2.connect(user=user,
-                                      password=POSTGRES_PASSWORD,
-                                      host=host,
-                                      port=port,
-                                      database=database)
-        
+        connection = psycopg2.connect(user=PG_USER,
+                                      password=PG_PASSWORD,
+                                      host=PG_HOST,
+                                      port=PG_HOST,
+                                      database=PG_DATABASE_NAME)
         connection.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
         print('Подключение успешно')
     except (Exception, Error) as error:

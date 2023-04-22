@@ -4,28 +4,22 @@ from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 
 from sqlalchemy import create_engine
 
+from config import PG_USER, PG_PASSWORD, PG_HOST, PG_PORT, PG_DATABASE_NAME, PG_URL
+
 from models import Base
-from config import POSTGRES_PASSWORD
 
-user = 'postgres'
-password = POSTGRES_PASSWORD
-host = '127.0.0.1'
-port = '5432'
-database = 'secret_db'
-
-db_url = f'postgresql://{user}:{password}@{host}:{port}/{database}'
-engine = create_engine(db_url)
+engine = create_engine(PG_URL)
 
 def create_db():
     try:
-        connection = psycopg2.connect(user=user,
-                                      password=POSTGRES_PASSWORD,
-                                      host=host,
-                                      port=port)
+        connection = psycopg2.connect(user=PG_USER,
+                                      password=PG_PASSWORD,
+                                      host=PG_HOST,
+                                      port=PG_PORT)
         connection.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
 
         cursor = connection.cursor()
-        cursor.execute(f'create database {database}')
+        cursor.execute(f'create database {PG_DATABASE_NAME}')
         print('База данных создана успешно')
         cursor.close()
 
