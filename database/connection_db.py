@@ -2,7 +2,7 @@ import psycopg2
 from psycopg2 import Error
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 
-from config import PG_USER, PG_PASSWORD, PG_HOST, PG_PORT, PG_DATABASE_NAME
+from configs.config import PG_USER, PG_PASSWORD, PG_HOST, PG_PORT, PG_DATABASE_NAME
 
 def db_connection():
     try:

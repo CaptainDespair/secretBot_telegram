@@ -4,9 +4,9 @@ from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 
 from sqlalchemy import create_engine
 
-from config import PG_USER, PG_PASSWORD, PG_HOST, PG_PORT, PG_DATABASE_NAME, PG_URL
+from configs.config import PG_USER, PG_PASSWORD, PG_HOST, PG_PORT, PG_DATABASE_NAME, PG_URL
 
-from models import Base
+from database.models import Base
 
 engine = create_engine(PG_URL)
 
