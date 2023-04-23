@@ -35,7 +35,8 @@ async def command_start_help(message: types.Message):
                             \n/Регистрация : регистрирует пользователей в нашей системе\
                             \n/Мои_данные : ваша БД\
                             \n/Добавить_данные : добавить данные в вашу БД\
-                            \n/Удалить_данные : удалить данные в БД')
+                            \n/Удалить_данные : удалить данные в БД\
+                            \n/Удалить_учетную_запись: удалить учетную запись и вашу БД')
 
 
 #/Регистрация
@@ -55,23 +56,32 @@ async def command_registration(message: types.Message):
     else:
         await bot.send_message(message.from_user.id, 
                             f'{message.from_user.id}, придумайте пароль.') 
-        await states.Password.waiting_for_registration.set()
+        await states.Password.waiting_for_reg_user.set()
             
 
 #Создание пароля
-@dp.message_handler(state=states.Password.waiting_for_registration)              
+@dp.message_handler(state=states.Password.waiting_for_reg_user)              
 async def create_corr_password(message: types.Message, state: FSMContext):
     name_id = str(message.from_user.id)
     password = message.text
     hiden_password = len(message.text)*'*'
-    #await state.update_data(password=password)
     
+    try:
+        get_max_id = session\
+                        .query(User)\
+                        .order_by(User.id.desc())\
+                        .first()
+        session.close()
+        max_id = get_max_id.id + 1
+    except: 
+        max_id = 0
+
     if ' ' in password:
         await bot.send_message(message.from_user.id, 
                             f'{message.from_user.id}, пароль не должен содержать пробелы!')
         await message.delete()
     else:
-        user = User(name_id=name_id, password=password)
+        user = User(id = max_id, name_id=name_id, password=password)
         session.add(user)
         session.commit()
         await bot.send_message(message.from_user.id, 
@@ -95,7 +105,7 @@ async def command_read_data(message: types.Message):
     if name_id_exist:
         await bot.send_message(message.from_user.id, 
                             f'{message.from_user.id}, введите пароль.')
-        await states.Password.waiting_for_authorization_rd.set()
+        await states.Password.waiting_for_auth_rd.set()
     else:     
         await bot.send_message(message.from_user.id, 
                             f'{message.from_user.id}, вы не зарегистрированы.\
@@ -104,8 +114,8 @@ async def command_read_data(message: types.Message):
                               parse_mode='HTML')
 
 
-#Авторизация на чтение данных
-@dp.message_handler(state=states.Password.waiting_for_authorization_rd)
+#Авторизация и чтение данных
+@dp.message_handler(state=states.Password.waiting_for_auth_rd)
 async def auth_for_read(message: types.Message, state: FSMContext):
     name_id = str(message.from_user.id)
     password = message.text
@@ -117,15 +127,16 @@ async def auth_for_read(message: types.Message, state: FSMContext):
     session.close()
 
     if password_is_valid:
+        get_user_id = password_is_valid.id
         await bot.send_message(message.from_user.id, 
                                'ВАШИ ДАННЫЕ:\n-------------------------')
         data = session\
                 .query(Data)\
-                .filter_by(user_id=password_is_valid.id)\
+                .filter_by(user_id=get_user_id)\
                 .all()
         for frame in data:
             await bot.send_message(message.from_user.id,
-                                   f'{frame}\n')  
+                                   f'{frame.text} \n')  
         await bot.send_message(message.from_user.id,
                                '<b><i>В качестве безопасности очистите историю.\
                                Ваши данные будут сохранены.</i></b>', 
@@ -150,7 +161,7 @@ async def command_write_data(message: types.Message):
     if name_id_exist:
         await bot.send_message(message.from_user.id, 
                             f'{message.from_user.id}, введите пароль.')
-        await states.Password.waiting_for_authorization_wrt.set() 
+        await states.Password.waiting_for_auth_wrt.set() 
     else:
         await bot.send_message(message.from_user.id, 
                             f'{message.from_user.id}, вы не зарегистрированы.\
@@ -160,7 +171,7 @@ async def command_write_data(message: types.Message):
 
 
 #Авторизация на запись данных
-@dp.message_handler(state=states.Password.waiting_for_authorization_wrt)
+@dp.message_handler(state=states.Password.waiting_for_auth_wrt)
 async def auth_for_write(message: types.Message, state: FSMContext):
     name_id = str(message.from_user.id)
     password = message.text
@@ -174,7 +185,7 @@ async def auth_for_write(message: types.Message, state: FSMContext):
     if password_is_valid:
         await bot.send_message(message.from_user.id, 
                                'Успешно. Внесите ваши данные')
-        await states.Password.waiting_for_write_data.set()
+        await states.Password.waiting_for_wrt_data.set()
     else:
         await bot.send_message(message.from_user.id, 
                                'Неверный пароль!')
@@ -182,7 +193,7 @@ async def auth_for_write(message: types.Message, state: FSMContext):
     
 
 #Запись данных    
-@dp.message_handler(state=states.Password.waiting_for_write_data)   
+@dp.message_handler(state=states.Password.waiting_for_wrt_data)   
 async def write_data(message: types.Message, state: FSMContext):         
     name_id = str(message.from_user.id)
     data = str(message.text)
@@ -217,7 +228,7 @@ async def command_delete_data(message: types.Message):
     if name_id_exist:
         await bot.send_message(message.from_user.id, 
                             f'{message.from_user.id}, введите пароль.')
-        await states.Password.waiting_for_authorization_dlt.set()
+        await states.Password.waiting_for_auth_dlt_data.set()
     else:     
         await bot.send_message(message.from_user.id, 
                             f'{message.from_user.id}, вы не зарегистрированы.\
@@ -227,7 +238,7 @@ async def command_delete_data(message: types.Message):
         
         
 #Авторизация на удаление данных
-@dp.message_handler(state=states.Password.waiting_for_authorization_dlt)
+@dp.message_handler(state=states.Password.waiting_for_auth_dlt_data)
 async def auth_for_delete(message: types.Message, state: FSMContext):
     name_id = str(message.from_user.id)
     password = message.text
@@ -238,35 +249,73 @@ async def auth_for_delete(message: types.Message, state: FSMContext):
                      .first()
     session.close()
 
+    try:
+        get_user_id = password_is_valid.id
+    except:
+        await bot.send_message(message.from_user.id, 
+                               'Неверный пароль!')
+
     if password_is_valid:
         await bot.send_message(message.from_user.id, 
-                               'Успешно. Внесите ваши данные')
-        await states.Password.waiting_for_delete_data.set()
+                               'Успешно. Происходит удаление...')
+        
+        session.query(Data).filter_by(user_id=get_user_id).delete()
+        session.commit()
+
+        await bot.send_message(message.from_user.id, 
+                            f'{message.from_user.id}, данные успешно удалены.')     
+        await state.finish()
     else:
         await bot.send_message(message.from_user.id, 
                                'Неверный пароль!')
     await message.delete()
 
 
-#Удаление данных
-@dp.message_handler(state=states.Password.waiting_for_delete_data)   
-async def delete_data(message: types.Message, state: FSMContext):         
+#/Удалить_учетную_запись
+@dp.message_handler(commands=['Удалить_учетную_запись'])
+async def command_delete_user(message: types.Message):
     name_id = str(message.from_user.id)
-    data = str(message.text)
 
-    get_user_id = session\
-                  .query(User)\
-                  .filter_by(name_id=name_id)\
-                  .first()
+    name_id_exist = session\
+                    .query(User)\
+                    .filter_by(name_id=name_id)\
+                    .first()
     session.close()
 
-    # data = Data(text=data, user_id=get_user_id.id)
-    # session.add(data)
-    # session.commit()
-    # await bot.send_message(message.from_user.id, 
-    #                     f'{message.from_user.id}, данные успешно занесены.')  
-                    
-    await state.finish()
+    if name_id_exist:
+        await bot.send_message(message.from_user.id, 
+                            f'{message.from_user.id}, введите пароль.')
+        await states.Password.waiting_for_auth_dlt_user.set()
+    else:     
+        await bot.send_message(message.from_user.id, 
+                            f'{message.from_user.id}, вы не зарегистрированы.\
+                              \nОбратитесь к команде <b><i>"/Регистрация"</i></b>',
+                               parse_mode='HTML')
+        
+        
+#Авторизация на удаление пользователя
+@dp.message_handler(state=states.Password.waiting_for_auth_dlt_user)
+async def auth_for_delete_user(message: types.Message, state: FSMContext):
+    name_id = str(message.from_user.id)
+    password = message.text
+
+    password_is_valid = session\
+                     .query(User)\
+                     .filter_by(name_id=name_id, password=password)\
+                     .first()
+    session.close()
+
+    if password_is_valid:
+        get_user_id = password_is_valid.id
+        session.query(User).filter_by(id=get_user_id).delete()
+        session.commit()
+
+        await bot.send_message(message.from_user.id, 
+                            f'Пользватель {message.from_user.id} и даные удалены.')     
+        await state.finish()
+    else:
+        await bot.send_message(message.from_user.id, 
+                               'Неверный пароль!')
     await message.delete()
 
 
